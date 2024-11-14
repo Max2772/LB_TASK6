@@ -2,23 +2,23 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
+#include "head.h"
 #define BUFFER_SIZE 4096
 
-bool parse_int(char *string, int *integer);
+int parse_int(char *string, int *integer);
 int stringToInteger();
 long long get_free_memory();
-long double sqrt(long long x);
+long double mysqrt(long long x);
 void magicSquare(long long n);
 void evenMagicSquare(long long **square, long long n);
 void twiceEvenMagicSquare(long long **square, long long n);
 void oddMagicSquare(long long **square, long long n);
-
+int checkSquare(long long **square, long long n);
 
 int main() {
     printf("Программа, для построения магического квадрата\n");
     printf("Выполнил Бибиков Максим, группа 453502\n");
-    long long max_N = sqrt((16 + get_free_memory()) / 8);
+    long long max_N = mysqrt((16 + get_free_memory()) / 8);
     printf("Введите порядок магического квадрата(натуральное число, не превосходящее %lld): ", max_N);
     long long N = stringToInteger();
         
@@ -35,11 +35,52 @@ int main() {
     return 0;
 }
 
-bool parse_int(char *string, int *integer){
+int checkSquare(long long **square, long long n){
+    int sum = 0;
+    for(int i = 0; i < n; i++){
+        sum += square[i][0];
+    }
+    int temp;
+    for(int i = 0; i < n; i++){ // Проверка строк
+        temp = 0;
+        for(int j = 0; j < n; j++){
+            temp += square[i][j];
+        }
+        if(temp != sum)
+            return 0;
+    }
+
+    for(int i = 1; i < n; i++){ // Проверка столбцов
+        temp = 0;
+        for(int j = 0; j < n; j++){
+            temp += square[i][j];
+        }
+        if(temp != sum)
+            return 0;
+    }
+    temp = 0;
+    for(int i = 0, j = 0; i < n; i++, j++){ // Проверка главной диагонали
+        temp += square[i][j];
+    }
+    if(temp != sum)
+        return 0;
+
+    temp = 0;
+
+    for(int i = n - 1, j = 0; i >= 0; i--, j++){ // Проверка побочной диагонали
+    temp += square[i][j];
+    }
+    if(temp != sum)
+        return 0;
+
+    return 1;
+}
+
+int parse_int(char *string, int *integer){
     int i = 0;
     while(isspace(string[i])) i++; // while(isspace([string[i]])) i++;
     int length = strlen(string);
-    if(length == i) return false; 
+    if(length == i) return 0; 
 
     char int_buffer[BUFFER_SIZE];
     int int_chars = 0;
@@ -48,11 +89,11 @@ bool parse_int(char *string, int *integer){
         int_buffer[int_chars] = '-';
         int_chars++; i++;
 
-        if(!isdigit(string[i])) return false;
+        if(!isdigit(string[i])) return 0;
     }
     
     while(i < length && !isspace(string[i])){ // isspace can't be modifed, fck
-        if(!isdigit(string[i])) return false;
+        if(!isdigit(string[i])) return 0;
         
         int_buffer[int_chars] = string[i];
         int_chars++;
@@ -62,29 +103,29 @@ bool parse_int(char *string, int *integer){
 
     while(isspace(string[i])) i++; // isspace cmon
 
-    if(string[i] != '\0') return false;
+    if(string[i] != '\0') return 0;
 
     *integer = atoi(int_buffer);
 
-    return true;
+    return 1;
 }
 
 int stringToInteger(){
         int type;
-        bool parsed_correct = true;
+        int parsed_correct = 1;
         do{
         char buffer[BUFFER_SIZE];
         fgets(buffer, BUFFER_SIZE, stdin);
         parsed_correct = parse_int(buffer, &type);
-        if(!parsed_correct)
+        if(parsed_correct == 0)
             printf("Некорректный ввод, введите ещё раз!\n");
-        }while(!parsed_correct);
+        }while(parsed_correct == 0);
 
         return type;
 }
 
 
-long double sqrt(long long x){
+long double mysqrt(long long x){
     long double left = 0;
     long double right = x;
     long double middle;
@@ -137,8 +178,8 @@ void magicSquare(long long n){
     }else{
         evenMagicSquare(square, n);
     }
-
-    printf("Магический квадрат порядка %lld:\n", n);
+    long long N = checkSquare(square, n);
+    printf("Магический квадрат порядка %lld:\n", N);
     for (long long i = 0; i < n; i++) {
         for (long long j = 0; j < n; j++) {
             printf("%10lld ", square[i][j]);
@@ -152,45 +193,43 @@ void magicSquare(long long n){
     free(square);
 }
 
-void evenMagicSquare(long long **square, long long n){
-    long long halfN = n / 2;
-    long long k = (n - 2) / 4;
-
-    long long **miniSquare = (long long **)malloc(halfN * sizeof(long long *));
-    for (long long i = 0; i < halfN; i++) {
-        miniSquare[i] = (long long *)malloc(halfN * sizeof(long long));
-    }
-
-    oddMagicSquare(miniSquare, halfN);
-
-    for (long long i = 0; i < halfN; i++) {
-        for (long long j = 0; j < halfN; j++) {
-            square[i][j] = miniSquare[i][j];
-            square[i + halfN][j + halfN] = miniSquare[i][j] + halfN * halfN;
-            square[i][j + halfN] = miniSquare[i][j] + 2 * halfN * halfN;
-            square[i + halfN][j] = miniSquare[i][j] + 3 * halfN * halfN;
+void evenMagicSquare(long long **square, long long n) {
+    oddMagicSquare(square, n / 2);
+    for (int z = 0; z < n / 2; z++) {
+        for (int y = 0; y < n / 2; y++) {
+            square[z + n / 2][y + n / 2] = square[z][y] + n * n / 4;
+            square[z][y + n / 2] = square[z][y] + 2 * n * n / 4;
+            square[z + n / 2][y] = square[z][y] + 3 * n * n / 4;
         }
     }
 
-    for (long long i = 0; i < halfN; i++) {
-        for (long long j = 0; j < k; j++) {
-            if (i == k) {
-                long long temp = square[i][j];
-                square[i][j] = square[i + halfN][j];
-                square[i + halfN][j] = temp;
-            } else {
-                long long temp = square[i][j];
-                square[i][j] = square[i + halfN][j];
-                square[i + halfN][j] = temp;
-            }
+    int pillar = n / 2 - 3;
+
+    for (int z = 0; z < n / 2; z++) {
+        for (int y = (n / 2) - (pillar / 2); y < (n / 2) + (pillar / 2); y++) {
+            int k;
+            k = square[z][y];
+            square[z][y] = square[z + n / 2][y];
+            square[z + n / 2][y] = k;
         }
     }
 
-    for (long long i = 0; i < halfN; i++) {
-        long long temp = square[i][k];
-        square[i][k] = square[i + halfN][k];
-        square[i + halfN][k] = temp;
+    int k;
+    k = square[0][0];
+    square[0][0] = square[n / 2][0];
+    square[n / 2][0] = k;
+
+    k = square[n / 2 - 1][0];
+    square[n / 2 - 1][0] = square[n - 1][0];
+    square[n - 1][0] = k;
+
+    for (int z = 1; z < n / 2 - 1; z++) {
+        int k;
+        k = square[z][1];
+        square[z][1] = square[z + n / 2][1];
+        square[z + n / 2][1] = k;
     }
+
 }
 
 void twiceEvenMagicSquare(long long **square, long long n){
